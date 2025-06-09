@@ -9,6 +9,7 @@ use crate::engine::propagation::ReadDomains;
 use crate::engine::propagation::PropagationContextMut;
 use crate::propagators::util::register_tasks;
 use crate::engine::propagation::PropagatorInitialisationContext;
+use crate::statistics::StatisticLogger;
 
 use crate::predicate;
 use crate::predicates::Predicate;
@@ -20,11 +21,33 @@ use crate::basic_types::PropagationStatusCP;
 
 
 use std::cmp::{max, min};
+use std::fmt;
 
 #[derive(Clone, Debug)]
 pub(crate) struct EnergeticReasoning<Var> {
     /// Stores the input parameters to the cumulative constraint
     parameters: CumulativeParameters<Var>,
+    conflict_overload: f64,
+    conflict_overload_cnt: f64,
+    propagation_overload: f64,
+    propagation_overload_cnt: f64,
+}
+
+struct Statistics {
+    conflict_overload: f64,
+    conflict_overload_cnt: f64,
+    propagation_overload: f64,
+    propagation_overload_cnt: f64,
+}
+
+impl fmt::Display for Statistics {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(
+            f,
+            "conf_overload: {} / {}; prop_overload: {} / {}",
+            self.conflict_overload, self.conflict_overload_cnt, self.propagation_overload, self.propagation_overload_cnt,
+        )
+    }
 }
 
 impl<Var: IntegerVariable + 'static> EnergeticReasoning<Var> {
@@ -38,6 +61,10 @@ impl<Var: IntegerVariable + 'static> EnergeticReasoning<Var> {
 
         EnergeticReasoning {
             parameters,
+            conflict_overload: 0.0,
+            conflict_overload_cnt: 0.0,
+            propagation_overload: 0.0,
+            propagation_overload_cnt: 0.0,
         }
     }
 }
@@ -362,6 +389,8 @@ fn create_propagation_explanation_right<Context: ReadDomains + Copy, Var: Intege
     PropositionalConjunction::new(predicates)
 }
 
+
+
 impl<Var: IntegerVariable + 'static> Propagator for EnergeticReasoning<Var> {
 
     fn debug_propagate_from_scratch(
@@ -377,7 +406,8 @@ impl<Var: IntegerVariable + 'static> Propagator for EnergeticReasoning<Var> {
                 used_energy += minimum_interval(context.as_readonly(), (*start, *end), task) * task.resource_usage;
             }
             if used_energy > maximum_energy{
-                return Err(create_conflict_explanation(context.as_readonly(), (*start, *end), used_energy - maximum_energy, &self.parameters).into());
+                let overload = used_energy - maximum_energy;
+                return Err(create_conflict_explanation(context.as_readonly(), (*start, *end), overload, &self.parameters).into());
             }
             for task in self.parameters.tasks.iter() {
                 used_energy -= minimum_interval(context.as_readonly(), (*start, *end), task) * task.resource_usage;
@@ -389,12 +419,18 @@ impl<Var: IntegerVariable + 'static> Propagator for EnergeticReasoning<Var> {
                 if available_energy < ls * task.resource_usage
                 && context.lower_bound(&task.start_variable) < updated_lower_bound
                 {
-                    context.set_lower_bound(&task.start_variable, updated_lower_bound, create_propagation_explanation_left(context.as_readonly(), (*start, *end), task, available_energy % task.resource_usage, &self.parameters))?;
+                    let overload = task.resource_usage - 1 - available_energy % task.resource_usage;
+                    context.set_lower_bound(&task.start_variable, updated_lower_bound,
+                         create_propagation_explanation_left(context.as_readonly(), (*start, *end), task,
+                         overload, &self.parameters))?;
                 }
                 if available_energy < rs * task.resource_usage && updated_upper_bound < context.lower_bound(&task.start_variable)
                 && context.upper_bound(&task.start_variable) > updated_upper_bound
                 {
-                    context.set_upper_bound(&task.start_variable, updated_upper_bound, create_propagation_explanation_right(context.as_readonly(), (*start, *end), task, (available_energy + task.resource_usage - 1) % task.resource_usage, &self.parameters))?;
+                    let overload = task.resource_usage - 1 - (available_energy + task.resource_usage - 1) % task.resource_usage;
+                    context.set_upper_bound(&task.start_variable, updated_upper_bound,
+                         create_propagation_explanation_right(context.as_readonly(), (*start, *end), task,
+                          overload, &self.parameters))?;
                 }
                 used_energy += minimum_interval(context.as_readonly(), (*start, *end), task) * task.resource_usage;
             }
@@ -413,12 +449,16 @@ impl<Var: IntegerVariable + 'static> Propagator for EnergeticReasoning<Var> {
                 let updated_lower_bound = end - available_energy / task.resource_usage;
                 let mi = minimum_interval(context.as_readonly(), (*start, *end), task);
                 if available_energy < mi * task.resource_usage{
-                    return Err(create_conflict_explanation(context.as_readonly(), (*start, *end), mi * task.resource_usage - available_energy, &self.parameters).into());
+                    let overload = mi * task.resource_usage - available_energy;
+                    return Err(create_conflict_explanation(context.as_readonly(), (*start, *end), overload, &self.parameters).into());
                 }
                 if available_energy < left_shift(context.as_readonly(), (*start, *end), task) * task.resource_usage
                 && context.lower_bound(&task.start_variable) < updated_lower_bound
                 {
-                    context.set_lower_bound(&task.start_variable, updated_lower_bound, create_propagation_explanation_left(context.as_readonly(), (*start, *end), task, available_energy % task.resource_usage, &self.parameters))?;
+                    let overload = task.resource_usage - 1 - available_energy % task.resource_usage;
+                    context.set_lower_bound(&task.start_variable, updated_lower_bound,
+                         create_propagation_explanation_left(context.as_readonly(), (*start, *end), task,
+                         overload, &self.parameters))?;
                 }
             }
             let intervals_right = generate_right_intervals(context.as_readonly(), &task, &self.parameters);
@@ -433,12 +473,16 @@ impl<Var: IntegerVariable + 'static> Propagator for EnergeticReasoning<Var> {
                 let updated_upper_bound = start + (available_energy + task.resource_usage - 1) / task.resource_usage - task.processing_time;
                 let mi = minimum_interval(context.as_readonly(), (*start, *end), task);
                 if available_energy < mi * task.resource_usage{
-                    return Err(create_conflict_explanation(context.as_readonly(), (*start, *end), mi * task.resource_usage - available_energy, &self.parameters).into());
+                    let overload = mi * task.resource_usage - available_energy;
+                    return Err(create_conflict_explanation(context.as_readonly(), (*start, *end), overload, &self.parameters).into());
                 }
                 if available_energy < right_shift(context.as_readonly(), (*start, *end), task) * task.resource_usage
                 && context.upper_bound(&task.start_variable) > updated_upper_bound
                 {
-                    context.set_upper_bound(&task.start_variable, updated_upper_bound, create_propagation_explanation_right(context.as_readonly(), (*start, *end), task, (available_energy + task.resource_usage - 1) % task.resource_usage, &self.parameters))?;
+                    let overload = task.resource_usage - 1 - (available_energy + task.resource_usage - 1) % task.resource_usage;
+                    context.set_upper_bound(&task.start_variable, updated_upper_bound,
+                         create_propagation_explanation_right(context.as_readonly(), (*start, *end), task,
+                          overload, &self.parameters))?;
                 }
             }
         }
@@ -449,6 +493,114 @@ impl<Var: IntegerVariable + 'static> Propagator for EnergeticReasoning<Var> {
     fn name(&self) -> &str {
         "EnergeticReasoning"
     }
+    
+    fn propagate(&mut self, mut context: PropagationContextMut) -> PropagationStatusCP {
+        let intervals: Vec<(i32, i32)> = generate_all_intervals(context.as_readonly(), &self.parameters);
+
+        for (start, end) in &intervals {
+            let maximum_energy: i32 = self.parameters.capacity * (end - start);
+            let mut used_energy: i32 = 0;
+            for task in self.parameters.tasks.iter() {
+                used_energy += minimum_interval(context.as_readonly(), (*start, *end), task) * task.resource_usage;
+            }
+            if used_energy > maximum_energy{
+                let overload = used_energy - maximum_energy;
+                self.conflict_overload += overload as f64;
+                self.conflict_overload_cnt += 1.0;
+                return Err(create_conflict_explanation(context.as_readonly(), (*start, *end), overload, &self.parameters).into());
+            }
+            for task in self.parameters.tasks.iter() {
+                used_energy -= minimum_interval(context.as_readonly(), (*start, *end), task) * task.resource_usage;
+                let available_energy = maximum_energy - used_energy;
+                let updated_lower_bound = end - available_energy / task.resource_usage;
+                let updated_upper_bound = start + (available_energy + task.resource_usage - 1) / task.resource_usage - task.processing_time;
+                let ls = left_shift(context.as_readonly(), (*start, *end), task);
+                let rs = right_shift(context.as_readonly(), (*start, *end), task);
+                if available_energy < ls * task.resource_usage
+                && context.lower_bound(&task.start_variable) < updated_lower_bound
+                {
+                    let overload = task.resource_usage - 1 - available_energy % task.resource_usage;
+                    self.propagation_overload += overload as f64;
+                    self.propagation_overload_cnt += 1.0;
+                    context.set_lower_bound(&task.start_variable, updated_lower_bound,
+                         create_propagation_explanation_left(context.as_readonly(), (*start, *end), task,
+                         overload, &self.parameters))?;
+                }
+                if available_energy < rs * task.resource_usage && updated_upper_bound < context.lower_bound(&task.start_variable)
+                && context.upper_bound(&task.start_variable) > updated_upper_bound
+                {
+                    let overload = task.resource_usage - 1 - (available_energy + task.resource_usage - 1) % task.resource_usage;
+                    self.propagation_overload += overload as f64;
+                    self.propagation_overload_cnt += 1.0;
+                    context.set_upper_bound(&task.start_variable, updated_upper_bound,
+                         create_propagation_explanation_right(context.as_readonly(), (*start, *end), task,
+                          overload, &self.parameters))?;
+                }
+                used_energy += minimum_interval(context.as_readonly(), (*start, *end), task) * task.resource_usage;
+            }
+        }
+        
+        for task in self.parameters.tasks.iter() {
+            let intervals_left = generate_left_intervals(context.as_readonly(), &task, &self.parameters);
+            for (start, end) in &intervals_left {
+                let maximum_energy: i32 = self.parameters.capacity * (end - start);
+                let mut used_energy: i32 = 0;
+                for task2 in self.parameters.tasks.iter() {
+                    used_energy += minimum_interval(context.as_readonly(), (*start, *end), task2) * task2.resource_usage;
+                }
+                used_energy -= minimum_interval(context.as_readonly(), (*start, *end), task) * task.resource_usage;
+                let available_energy = maximum_energy - used_energy;
+                let updated_lower_bound = end - available_energy / task.resource_usage;
+                let mi = minimum_interval(context.as_readonly(), (*start, *end), task);
+                if available_energy < mi * task.resource_usage{
+                    let overload = mi * task.resource_usage - available_energy;
+                    self.conflict_overload += overload as f64;
+                    self.conflict_overload_cnt += 1.0;
+                    return Err(create_conflict_explanation(context.as_readonly(), (*start, *end), overload, &self.parameters).into());
+                }
+                if available_energy < left_shift(context.as_readonly(), (*start, *end), task) * task.resource_usage
+                && context.lower_bound(&task.start_variable) < updated_lower_bound
+                {
+                    let overload = task.resource_usage - 1 - available_energy % task.resource_usage;
+                    self.propagation_overload += overload as f64;
+                    self.propagation_overload_cnt += 1.0;
+                    context.set_lower_bound(&task.start_variable, updated_lower_bound,
+                         create_propagation_explanation_left(context.as_readonly(), (*start, *end), task,
+                         overload, &self.parameters))?;
+                }
+            }
+            let intervals_right = generate_right_intervals(context.as_readonly(), &task, &self.parameters);
+            for (start, end) in &intervals_right {
+                let maximum_energy: i32 = self.parameters.capacity * (end - start);
+                let mut used_energy: i32 = 0;
+                for task in self.parameters.tasks.iter() {
+                    used_energy += minimum_interval(context.as_readonly(), (*start, *end), task) * task.resource_usage;
+                }
+                used_energy -= minimum_interval(context.as_readonly(), (*start, *end), task) * task.resource_usage;
+                let available_energy = maximum_energy - used_energy;
+                let updated_upper_bound = start + (available_energy + task.resource_usage - 1) / task.resource_usage - task.processing_time;
+                let mi = minimum_interval(context.as_readonly(), (*start, *end), task);
+                if available_energy < mi * task.resource_usage{
+                    let overload = mi * task.resource_usage - available_energy;
+                    self.conflict_overload += overload as f64;
+                    self.conflict_overload_cnt += 1.0;
+                    return Err(create_conflict_explanation(context.as_readonly(), (*start, *end), overload, &self.parameters).into());
+                }
+                if available_energy < right_shift(context.as_readonly(), (*start, *end), task) * task.resource_usage
+                && context.upper_bound(&task.start_variable) > updated_upper_bound
+                {
+                    let overload = task.resource_usage - 1 - (available_energy + task.resource_usage - 1) % task.resource_usage;
+                    self.propagation_overload += overload as f64;
+                    self.propagation_overload_cnt += 1.0;
+                    context.set_upper_bound(&task.start_variable, updated_upper_bound,
+                         create_propagation_explanation_right(context.as_readonly(), (*start, *end), task,
+                          overload, &self.parameters))?;
+                }
+            }
+        }
+
+        Ok(())
+    }
 
     fn initialise_at_root(
         &mut self,
@@ -457,5 +609,13 @@ impl<Var: IntegerVariable + 'static> Propagator for EnergeticReasoning<Var> {
         register_tasks(&self.parameters.tasks, context, false);
 
         Ok(())
+    }
+
+    fn log_statistics(&self, _statistic_logger: StatisticLogger) {
+        _statistic_logger.log_statistic(Statistics{
+            conflict_overload: self.conflict_overload,
+            conflict_overload_cnt: self.conflict_overload_cnt,
+            propagation_overload: self.propagation_overload,
+            propagation_overload_cnt: self.propagation_overload_cnt});
     }
 }
