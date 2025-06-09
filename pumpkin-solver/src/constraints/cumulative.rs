@@ -9,6 +9,7 @@ use crate::propagators::TimeTableOverIntervalIncrementalPropagator;
 use crate::propagators::TimeTableOverIntervalPropagator;
 use crate::propagators::TimeTablePerPointIncrementalPropagator;
 use crate::propagators::TimeTablePerPointPropagator;
+use crate::propagators::EnergeticReasoning;
 use crate::pumpkin_assert_simple;
 use crate::variables::IntegerVariable;
 use crate::variables::Literal;
@@ -257,12 +258,13 @@ impl<Var: IntegerVariable + 'static + Debug> Constraint for CumulativeConstraint
                 .post(solver, tag)
             }
             CumulativePropagationMethod::EnergeticReasoning => {
-                todo!("Call your Energetic Reasoning propagator here!")
-                // EnergeticReasoning::new(
-                //    &self.tasks,
-                //    self.resource_capacity,
-                // )
-                //.post(solver, tag)
+                //todo!("Call your Energetic Reasoning propagator here!")
+                EnergeticReasoning::new(
+                   &self.tasks,
+                   self.resource_capacity,
+                   self.options.propagator_options,
+                )
+                .post(solver, tag)
             }
         }
     }

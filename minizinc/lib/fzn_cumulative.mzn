@@ -8,13 +8,16 @@ predicate fzn_cumulative(array[int] of var int: s,
                          var int: b) =
     assert(
         index_set(s) == index_set(d) /\ index_set(s) == index_set(r),
-        "cumulative: the 3 array arguments must have identical index sets",
+        "index sets must match",
         forall(i in index_set(d))(d[i] >= 0 /\ r[i] >= 0)
-	/\  if is_fixed(d) /\ is_fixed(r) /\ is_fixed(b) then
-		    pumpkin_cumulative(s, fix(d), fix(r), fix(b))
-	    else
-            fzn_decomposition_cumulative(s, d, r, b)
-	    endif
+        /\
+        if is_fixed(d) /\ is_fixed(r) /\ is_fixed(b) then
+            %  /\ assert(false, "Using pumpkin_cumulative")
+            pumpkin_cumulative(s, fix(d), fix(r), fix(b))
+        else
+            %assert(false, "Using pumpkin_cumulative_vars") /\
+            pumpkin_cumulative_vars(s, d, r, b)
+        endif
     );
 
 % The following predicate is taken from https://github.com/MiniZinc/libminizinc/blob/2.5.5/share/minizinc/std/cumulative.mzn
@@ -38,7 +41,7 @@ predicate fzn_decomposition_cumulative(array[int] of var int: s,
                         then
                             all_different(s)
                         else
-                            disjunctive(s, d)
+                            assert(false, "Disjunctive?") /\ disjunctive(s, d)
                         endif
                     else
                         decomposition_cumulative(s, d, r, b)
