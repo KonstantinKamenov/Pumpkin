@@ -23,29 +23,37 @@ use crate::basic_types::PropagationStatusCP;
 use std::cmp::{max, min};
 use std::fmt;
 
+const EPSILON: f64 = 1e-9;
+
+static mut NO_ENERGY: i32 = 0;
+static mut NO_REMOVAL: i32 = 0;
+static mut NO_CHANGE: i32 = 0;
+
+static mut TOTAL_ENERGY: i32 = 0;
+static mut TOTAL_EXPLANATIONS: i32 = 0;
+static mut NORMALIZED_ENERGY: f64 = 0.0;
+
 #[derive(Clone, Debug)]
 pub(crate) struct EnergeticReasoning<Var> {
     /// Stores the input parameters to the cumulative constraint
     parameters: CumulativeParameters<Var>,
-    conflict_overload: f64,
-    conflict_overload_cnt: f64,
-    propagation_overload: f64,
-    propagation_overload_cnt: f64,
 }
 
 struct Statistics {
-    conflict_overload: f64,
-    conflict_overload_cnt: f64,
-    propagation_overload: f64,
-    propagation_overload_cnt: f64,
+    no_energy: i32,
+    no_removal: i32,
+    no_change: i32,
+    total_energy: i32,
+    total_explanations: i32,
+    normalized_energy: f64
 }
 
 impl fmt::Display for Statistics {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         write!(
             f,
-            "conf_overload: {} / {}; prop_overload: {} / {}",
-            self.conflict_overload, self.conflict_overload_cnt, self.propagation_overload, self.propagation_overload_cnt,
+            "NoEnergyIntervals, NoRemovedTasksIntervals, NoChangeIntervals, TotalEnergyToBeRemoved, TotalExplanations, TotalNormalizedEnergy - {}, {}, {}, {}, {}, {}",
+            self.no_energy, self.no_removal, self.no_change, self.total_energy, self.total_explanations, self.normalized_energy
         )
     }
 }
@@ -60,11 +68,7 @@ impl<Var: IntegerVariable + 'static> EnergeticReasoning<Var> {
         let parameters = CumulativeParameters::new(tasks, capacity, cumulative_options);
 
         EnergeticReasoning {
-            parameters,
-            conflict_overload: 0.0,
-            conflict_overload_cnt: 0.0,
-            propagation_overload: 0.0,
-            propagation_overload_cnt: 0.0,
+            parameters
         }
     }
 }
@@ -162,8 +166,22 @@ fn generate_left_intervals<Context: ReadDomains + Copy, Var: IntegerVariable + '
         if lst_i < lst_a && ect_a < lct_i && ect_a > lst_i && ect_a <= ect_i {
             add_interval(&mut intervals, (lst_i, ect_a));
         }
+
+
+        if est_a <= est_i && lct_i < lct_a {
+            add_interval(&mut intervals, (est_a, lct_i));
+        }
+
+        if est_a > est_i && est_a < ect_i && est_a < lst_i && est_i + lct_i - est_a > est_a && est_i + lct_i - est_a < lct_a {
+            add_interval(&mut intervals, (est_a, est_i + lct_i - est_a));
+        }
+
+        if est_a > est_i && est_a < ect_i && est_a >= lst_i && lct_i < lct_a {
+            add_interval(&mut intervals, (est_a, ect_i));
+        }
+
     }
-    add_interval(&mut intervals, (est_a, lct_a));
+    add_interval(&mut intervals, (est_a, ect_a));
     intervals
 }
 
@@ -200,9 +218,22 @@ fn generate_right_intervals<Context: ReadDomains + Copy, Var: IntegerVariable + 
         if lst_i < lst_a && ect_a < lct_i && ect_a > lst_i && ect_a <= ect_i {
             add_interval(&mut intervals, (-ect_a - &skip_task.processing_time, -lst_i - &skip_task.processing_time));
         }
+
+
+        if est_a <= est_i && lct_i < lct_a {
+            add_interval(&mut intervals, (-lct_i - &skip_task.processing_time, -est_a - &skip_task.processing_time));
+        }
+
+        if est_a > est_i && est_a < ect_i && est_a < lst_i && est_i + lct_i - est_a > est_a && est_i + lct_i - est_a < lct_a {
+            add_interval(&mut intervals, (-(est_i + lct_i - est_a) - &skip_task.processing_time, -est_a - &skip_task.processing_time));
+        }
+
+        if est_a > est_i && est_a < ect_i && est_a >= lst_i && lct_i < lct_a {
+            add_interval(&mut intervals, (-ect_i - &skip_task.processing_time, -est_a - &skip_task.processing_time));
+        }
     }
 
-    add_interval(&mut intervals, (-lct_a - &skip_task.processing_time, -est_a - &skip_task.processing_time));
+    add_interval(&mut intervals, (-ect_a - &skip_task.processing_time, -est_a - &skip_task.processing_time));
 
     intervals
 }
@@ -239,16 +270,20 @@ fn minimum_interval<Context: ReadDomains + Copy, Var: IntegerVariable + 'static>
 struct TaskBounds<'a, Var: IntegerVariable + 'static>{
     lb: i32,
     ub: i32,
+    lb_init: i32,
+    ub_init: i32,
     ls: i32,
     rs: i32,
     task: &'a Task<Var>
 }
 
 impl<'a, Var: IntegerVariable + 'static> TaskBounds<'a, Var> {
-    fn expand_domain(&mut self) {
+    fn expand_domain(&mut self, interval: (i32, i32)) {
         let mi = min(self.ls, self.rs);
-        self.lb -= self.ls - mi;
-        self.ub += self.rs - mi;
+        self.lb = interval.0 - self.task.processing_time + mi;
+        self.ub = interval.1 - mi;
+        self.ls = mi;
+        self.rs = mi;
     }
     fn shift_out(&mut self, overload: &mut i32) -> bool{
         if self.ls <= 0 || self.rs <= 0 || *overload <= self.task.resource_usage{
@@ -261,35 +296,89 @@ impl<'a, Var: IntegerVariable + 'static> TaskBounds<'a, Var> {
         *overload -= self.task.resource_usage;
         return true;
     }
+    fn energy(&self) -> i32{
+        min(self.ls, self.rs) * self.task.resource_usage
+    }
+    fn probability(&self) -> f64{
+        let lb = max(self.lb, self.lb_init);
+        let ub = min(self.ub, self.ub_init);
+        - ((ub as f64 - lb as f64 ) / (self.ub_init as f64 - self.lb_init as f64)).ln()
+    }
 }
 
 fn expand_domains<Var: IntegerVariable + 'static>(
-    task_bounds: &mut Vec<TaskBounds<Var>>
+    task_bounds: &mut Vec<TaskBounds<Var>>,
+    interval: (i32, i32),
 ){
     for task_bound in task_bounds.iter_mut(){
-        task_bound.expand_domain();
+        task_bound.expand_domain(interval);
     }
 }
 
 fn shift_tasks<Var: IntegerVariable + 'static>(
     task_bounds: &mut Vec<TaskBounds<Var>>,
-    maximum_overload: i32
-){
+    overload: &mut i32,
+) {
     task_bounds.sort_by_key(|tb| tb.task.resource_usage);
-    let mut overload = maximum_overload;
     for task_bound in task_bounds.iter_mut(){
-        while task_bound.shift_out(&mut overload) {}
+        while task_bound.shift_out(overload) {}
     }
+    task_bounds.retain(|tb| tb.rs > 0 && tb.ls > 0);
 }
 
 fn remove_tasks_greedy<Var: IntegerVariable + 'static>(
-    task_bounds: &mut Vec<TaskBounds<Var>>
+    task_bounds: &mut Vec<TaskBounds<Var>>,
+    overload: &mut i32,
 ){
+    task_bounds.sort_by_key(|tb| tb.energy());
+
+    task_bounds.retain(|task_bound| {
+        if task_bound.energy() < *overload {
+            *overload -= task_bound.energy();
+            false
+        } else {
+            true
+        }
+    });
 }
 
 fn remove_tasks_knapsack<Var: IntegerVariable + 'static>(
-    task_bounds: &mut Vec<TaskBounds<Var>>
+    task_bounds: &mut Vec<TaskBounds<Var>>,
+    overload: &mut i32,
 ){
+    if *overload <= 1 {
+        return;
+    }
+    let n = task_bounds.len();
+    let w = *overload - 1;
+    let mut dp: Vec<Vec<f64>> = vec![vec![0.0; w as usize + 1]; n + 1];
+
+    for i in 0..=n {
+        for j in 0..=w as usize {
+            if i == 0 || j == 0 {
+                continue;
+            }
+            let mut pick_value = 0.0;
+            if task_bounds[i - 1].energy() <= j as i32 {
+                pick_value = task_bounds[i - 1].probability() + dp[i - 1][j - task_bounds[i - 1].energy() as usize];
+            }
+            dp[i][j] = f64::max(pick_value, dp[i - 1][j]);
+        }
+    }
+
+    let mut res = dp[n][w as usize];
+    let mut w_temp = w;
+    let mut i = n;
+
+    while i > 0 && res > 0.0 {
+        if (res - dp[i - 1][w_temp as usize]).abs() > EPSILON {
+            res = res - task_bounds[i - 1].probability();
+            w_temp = w_temp - task_bounds[i - 1].energy();
+            *overload -= task_bounds[i - 1].energy();
+            task_bounds.remove(i - 1);
+        }
+        i -= 1;
+    }
 }
 
 fn create_conflict_explanation_base<Context: ReadDomains + Copy, Var: IntegerVariable + 'static>(
@@ -306,14 +395,40 @@ fn create_conflict_explanation_base<Context: ReadDomains + Copy, Var: IntegerVar
             task_bounds.push(TaskBounds{
                 lb: context.lower_bound(&task.start_variable),
                 ub: context.upper_bound(&task.start_variable),
+                lb_init: context.lower_bound_after_root_propagation(&task.start_variable),
+                ub_init: context.upper_bound_after_root_propagation(&task.start_variable),
                 ls,
                 rs,
                 task
             });
         }
     }
-    expand_domains(&mut task_bounds);
-    shift_tasks(&mut task_bounds, overload);
+
+    if overload <= 1 {
+        unsafe { NO_ENERGY += 1 };
+    }
+    unsafe { TOTAL_ENERGY += overload - 1 };
+    unsafe { TOTAL_EXPLANATIONS += 1 };
+    if let Some(min_usage) = task_bounds
+    .iter()
+    .map(|tb| tb.task.resource_usage)
+    .min()
+    {
+        unsafe { NORMALIZED_ENERGY += (overload - 1) as f64 / min_usage as f64 };
+    }
+
+    expand_domains(&mut task_bounds, interval);
+    let mut maximum_overload = overload;
+    let overload_before = overload;
+    //remove_tasks_greedy(&mut task_bounds, &mut maximum_overload);
+    remove_tasks_knapsack(&mut task_bounds, &mut maximum_overload);
+    if overload_before == maximum_overload {
+        unsafe { NO_REMOVAL += 1 };
+    }
+    shift_tasks(&mut task_bounds, &mut maximum_overload);
+    if overload_before == maximum_overload {
+        unsafe { NO_CHANGE += 1 };
+    }
     let mut predicates: Vec<Predicate> = Vec::new();
     for task_bound in task_bounds.iter_mut(){
         predicates.push(predicate!(task_bound.task.start_variable >= task_bound.lb));
@@ -340,14 +455,39 @@ fn create_propagation_explanation_base<Context: ReadDomains + Copy, Var: Integer
             task_bounds.push(TaskBounds{
                 lb: context.lower_bound(&task.start_variable),
                 ub: context.upper_bound(&task.start_variable),
+                lb_init: context.lower_bound_after_root_propagation(&task.start_variable),
+                ub_init: context.upper_bound_after_root_propagation(&task.start_variable),
                 ls,
                 rs,
                 task
             });
         }
     }
-    expand_domains(&mut task_bounds);
-    shift_tasks(&mut task_bounds, overload);
+    if overload <= 1 {
+        unsafe { NO_ENERGY += 1 };
+    }
+    unsafe { TOTAL_ENERGY += overload - 1 };
+    unsafe { TOTAL_EXPLANATIONS += 1 };
+    if let Some(min_usage) = task_bounds
+    .iter()
+    .map(|tb| tb.task.resource_usage)
+    .min()
+    {
+        unsafe { NORMALIZED_ENERGY += (overload - 1) as f64 / min_usage as f64 };
+    }
+
+    expand_domains(&mut task_bounds, interval);
+    let mut maximum_overload = overload;
+    let overload_before = overload;
+    //remove_tasks_greedy(&mut task_bounds, &mut maximum_overload);
+    remove_tasks_knapsack(&mut task_bounds, &mut maximum_overload);
+    if overload_before == maximum_overload {
+        unsafe { NO_REMOVAL += 1 };
+    }
+    shift_tasks(&mut task_bounds, &mut maximum_overload);
+    if overload_before == maximum_overload {
+        unsafe { NO_CHANGE += 1 };
+    }
     let mut predicates: Vec<Predicate> = Vec::new();
     for task_bound in task_bounds.iter_mut(){
         predicates.push(predicate!(task_bound.task.start_variable >= task_bound.lb));
@@ -389,8 +529,6 @@ fn create_propagation_explanation_right<Context: ReadDomains + Copy, Var: Intege
     PropositionalConjunction::new(predicates)
 }
 
-
-
 impl<Var: IntegerVariable + 'static> Propagator for EnergeticReasoning<Var> {
 
     fn debug_propagate_from_scratch(
@@ -419,15 +557,15 @@ impl<Var: IntegerVariable + 'static> Propagator for EnergeticReasoning<Var> {
                 if available_energy < ls * task.resource_usage
                 && context.lower_bound(&task.start_variable) < updated_lower_bound
                 {
-                    let overload = task.resource_usage - 1 - available_energy % task.resource_usage;
+                    let overload = task.resource_usage - available_energy % task.resource_usage;
                     context.set_lower_bound(&task.start_variable, updated_lower_bound,
                          create_propagation_explanation_left(context.as_readonly(), (*start, *end), task,
                          overload, &self.parameters))?;
                 }
-                if available_energy < rs * task.resource_usage && updated_upper_bound < context.lower_bound(&task.start_variable)
+                if available_energy < rs * task.resource_usage
                 && context.upper_bound(&task.start_variable) > updated_upper_bound
                 {
-                    let overload = task.resource_usage - 1 - (available_energy + task.resource_usage - 1) % task.resource_usage;
+                    let overload = task.resource_usage - (available_energy + task.resource_usage - 1) % task.resource_usage;
                     context.set_upper_bound(&task.start_variable, updated_upper_bound,
                          create_propagation_explanation_right(context.as_readonly(), (*start, *end), task,
                           overload, &self.parameters))?;
@@ -455,7 +593,7 @@ impl<Var: IntegerVariable + 'static> Propagator for EnergeticReasoning<Var> {
                 if available_energy < left_shift(context.as_readonly(), (*start, *end), task) * task.resource_usage
                 && context.lower_bound(&task.start_variable) < updated_lower_bound
                 {
-                    let overload = task.resource_usage - 1 - available_energy % task.resource_usage;
+                    let overload = task.resource_usage - available_energy % task.resource_usage;
                     context.set_lower_bound(&task.start_variable, updated_lower_bound,
                          create_propagation_explanation_left(context.as_readonly(), (*start, *end), task,
                          overload, &self.parameters))?;
@@ -479,7 +617,7 @@ impl<Var: IntegerVariable + 'static> Propagator for EnergeticReasoning<Var> {
                 if available_energy < right_shift(context.as_readonly(), (*start, *end), task) * task.resource_usage
                 && context.upper_bound(&task.start_variable) > updated_upper_bound
                 {
-                    let overload = task.resource_usage - 1 - (available_energy + task.resource_usage - 1) % task.resource_usage;
+                    let overload = task.resource_usage - (available_energy + task.resource_usage - 1) % task.resource_usage;
                     context.set_upper_bound(&task.start_variable, updated_upper_bound,
                          create_propagation_explanation_right(context.as_readonly(), (*start, *end), task,
                           overload, &self.parameters))?;
@@ -491,7 +629,7 @@ impl<Var: IntegerVariable + 'static> Propagator for EnergeticReasoning<Var> {
     }
 
     fn name(&self) -> &str {
-        "EnergeticReasoning"
+        "EnergeticReasoningKnapsack"
     }
     
     fn propagate(&mut self, mut context: PropagationContextMut) -> PropagationStatusCP {
@@ -505,8 +643,6 @@ impl<Var: IntegerVariable + 'static> Propagator for EnergeticReasoning<Var> {
             }
             if used_energy > maximum_energy{
                 let overload = used_energy - maximum_energy;
-                self.conflict_overload += overload as f64;
-                self.conflict_overload_cnt += 1.0;
                 return Err(create_conflict_explanation(context.as_readonly(), (*start, *end), overload, &self.parameters).into());
             }
             for task in self.parameters.tasks.iter() {
@@ -519,19 +655,15 @@ impl<Var: IntegerVariable + 'static> Propagator for EnergeticReasoning<Var> {
                 if available_energy < ls * task.resource_usage
                 && context.lower_bound(&task.start_variable) < updated_lower_bound
                 {
-                    let overload = task.resource_usage - 1 - available_energy % task.resource_usage;
-                    self.propagation_overload += overload as f64;
-                    self.propagation_overload_cnt += 1.0;
+                    let overload = task.resource_usage - available_energy % task.resource_usage;
                     context.set_lower_bound(&task.start_variable, updated_lower_bound,
                          create_propagation_explanation_left(context.as_readonly(), (*start, *end), task,
                          overload, &self.parameters))?;
                 }
-                if available_energy < rs * task.resource_usage && updated_upper_bound < context.lower_bound(&task.start_variable)
+                if available_energy < rs * task.resource_usage
                 && context.upper_bound(&task.start_variable) > updated_upper_bound
                 {
-                    let overload = task.resource_usage - 1 - (available_energy + task.resource_usage - 1) % task.resource_usage;
-                    self.propagation_overload += overload as f64;
-                    self.propagation_overload_cnt += 1.0;
+                    let overload = task.resource_usage - (available_energy + task.resource_usage - 1) % task.resource_usage;
                     context.set_upper_bound(&task.start_variable, updated_upper_bound,
                          create_propagation_explanation_right(context.as_readonly(), (*start, *end), task,
                           overload, &self.parameters))?;
@@ -554,16 +686,12 @@ impl<Var: IntegerVariable + 'static> Propagator for EnergeticReasoning<Var> {
                 let mi = minimum_interval(context.as_readonly(), (*start, *end), task);
                 if available_energy < mi * task.resource_usage{
                     let overload = mi * task.resource_usage - available_energy;
-                    self.conflict_overload += overload as f64;
-                    self.conflict_overload_cnt += 1.0;
                     return Err(create_conflict_explanation(context.as_readonly(), (*start, *end), overload, &self.parameters).into());
                 }
                 if available_energy < left_shift(context.as_readonly(), (*start, *end), task) * task.resource_usage
                 && context.lower_bound(&task.start_variable) < updated_lower_bound
                 {
-                    let overload = task.resource_usage - 1 - available_energy % task.resource_usage;
-                    self.propagation_overload += overload as f64;
-                    self.propagation_overload_cnt += 1.0;
+                    let overload = task.resource_usage - available_energy % task.resource_usage;
                     context.set_lower_bound(&task.start_variable, updated_lower_bound,
                          create_propagation_explanation_left(context.as_readonly(), (*start, *end), task,
                          overload, &self.parameters))?;
@@ -582,16 +710,12 @@ impl<Var: IntegerVariable + 'static> Propagator for EnergeticReasoning<Var> {
                 let mi = minimum_interval(context.as_readonly(), (*start, *end), task);
                 if available_energy < mi * task.resource_usage{
                     let overload = mi * task.resource_usage - available_energy;
-                    self.conflict_overload += overload as f64;
-                    self.conflict_overload_cnt += 1.0;
                     return Err(create_conflict_explanation(context.as_readonly(), (*start, *end), overload, &self.parameters).into());
                 }
                 if available_energy < right_shift(context.as_readonly(), (*start, *end), task) * task.resource_usage
                 && context.upper_bound(&task.start_variable) > updated_upper_bound
                 {
-                    let overload = task.resource_usage - 1 - (available_energy + task.resource_usage - 1) % task.resource_usage;
-                    self.propagation_overload += overload as f64;
-                    self.propagation_overload_cnt += 1.0;
+                    let overload = task.resource_usage - (available_energy + task.resource_usage - 1) % task.resource_usage;
                     context.set_upper_bound(&task.start_variable, updated_upper_bound,
                          create_propagation_explanation_right(context.as_readonly(), (*start, *end), task,
                           overload, &self.parameters))?;
@@ -613,9 +737,11 @@ impl<Var: IntegerVariable + 'static> Propagator for EnergeticReasoning<Var> {
 
     fn log_statistics(&self, _statistic_logger: StatisticLogger) {
         _statistic_logger.log_statistic(Statistics{
-            conflict_overload: self.conflict_overload,
-            conflict_overload_cnt: self.conflict_overload_cnt,
-            propagation_overload: self.propagation_overload,
-            propagation_overload_cnt: self.propagation_overload_cnt});
+            no_energy: unsafe { NO_ENERGY },
+            no_removal: unsafe { NO_REMOVAL },
+            no_change: unsafe { NO_CHANGE },
+            total_energy: unsafe { TOTAL_ENERGY },
+            total_explanations: unsafe { TOTAL_EXPLANATIONS }, 
+            normalized_energy: unsafe { NORMALIZED_ENERGY }});
     }
 }
