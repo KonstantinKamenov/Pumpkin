@@ -25,6 +25,7 @@ use std::fmt;
 
 const EPSILON: f64 = 1e-9;
 
+// Metrics to track performance
 static mut NO_ENERGY: i32 = 0;
 static mut NO_REMOVAL: i32 = 0;
 static mut NO_CHANGE: i32 = 0;
@@ -72,6 +73,8 @@ impl<Var: IntegerVariable + 'static> EnergeticReasoning<Var> {
         }
     }
 }
+
+// A function to add an interval to a vector of intervals only if it is valid
 fn add_interval(
     interval_vec: &mut Vec<(i32, i32)>,
     interval: (i32, i32),
@@ -81,6 +84,7 @@ fn add_interval(
     }
 }
 
+// Generates all relevant intervals for overload checking as defined by Derrien and Petit
 fn generate_all_intervals<Context: ReadDomains + Copy, Var: IntegerVariable + 'static>(
     context: Context,
     parameters: &CumulativeParameters<Var>
@@ -134,6 +138,7 @@ fn generate_all_intervals<Context: ReadDomains + Copy, Var: IntegerVariable + 's
     intervals
 }
 
+// Generates all relevant intervals for lower bound adjustment as defined by Derrien and Petit
 fn generate_left_intervals<Context: ReadDomains + Copy, Var: IntegerVariable + 'static>(
     context: Context,
     skip_task: &Rc<Task<Var>>,
@@ -185,6 +190,7 @@ fn generate_left_intervals<Context: ReadDomains + Copy, Var: IntegerVariable + '
     intervals
 }
 
+// Generates all relevant intervals for upper bound adjustment as defined by Derrien and Petit
 fn generate_right_intervals<Context: ReadDomains + Copy, Var: IntegerVariable + 'static>(
     context: Context,
     skip_task: &Rc<Task<Var>>,
@@ -238,7 +244,7 @@ fn generate_right_intervals<Context: ReadDomains + Copy, Var: IntegerVariable + 
     intervals
 }
 
-
+// Calculates the left shift of a task
 fn left_shift<Context: ReadDomains + Copy, Var: IntegerVariable + 'static>(
     context: Context,
     interval: (i32, i32),
@@ -249,6 +255,7 @@ fn left_shift<Context: ReadDomains + Copy, Var: IntegerVariable + 'static>(
     max(0, min(ect, interval.1) - max(est, interval.0))
 }
 
+// Calculates the right shift of a task
 fn right_shift<Context: ReadDomains + Copy, Var: IntegerVariable + 'static>(
     context: Context,
     interval: (i32, i32),
@@ -259,6 +266,7 @@ fn right_shift<Context: ReadDomains + Copy, Var: IntegerVariable + 'static>(
     max(0, min(lct, interval.1) - max(lst, interval.0))
 }
 
+// Calculates the minimum interval of a task
 fn minimum_interval<Context: ReadDomains + Copy, Var: IntegerVariable + 'static>(
     context: Context,
     interval: (i32, i32),
@@ -267,6 +275,7 @@ fn minimum_interval<Context: ReadDomains + Copy, Var: IntegerVariable + 'static>
     min(left_shift(context, interval, task), right_shift(context, interval, task))
 }
 
+// A structure to store and change the bound for all tasks within an explanation
 struct TaskBounds<'a, Var: IntegerVariable + 'static>{
     lb: i32,
     ub: i32,
@@ -278,6 +287,7 @@ struct TaskBounds<'a, Var: IntegerVariable + 'static>{
 }
 
 impl<'a, Var: IntegerVariable + 'static> TaskBounds<'a, Var> {
+    // Bounds relaxation for a single task
     fn expand_domain(&mut self, interval: (i32, i32)) {
         let mi = min(self.ls, self.rs);
         self.lb = interval.0 - self.task.processing_time + mi;
@@ -285,6 +295,7 @@ impl<'a, Var: IntegerVariable + 'static> TaskBounds<'a, Var> {
         self.ls = mi;
         self.rs = mi;
     }
+    // Try to move the task out by one time unit. If impossible returns false
     fn shift_out(&mut self, overload: &mut i32) -> bool{
         if self.ls <= 0 || self.rs <= 0 || *overload <= self.task.resource_usage{
             return false;
@@ -296,9 +307,11 @@ impl<'a, Var: IntegerVariable + 'static> TaskBounds<'a, Var> {
         *overload -= self.task.resource_usage;
         return true;
     }
+    // Calculate the energy of the task within the interval
     fn energy(&self) -> i32{
         min(self.ls, self.rs) * self.task.resource_usage
     }
+    // Value function for the knapsack based on probability heuristic
     fn probability(&self) -> f64{
         let lb = max(self.lb, self.lb_init);
         let ub = min(self.ub, self.ub_init);
@@ -306,6 +319,7 @@ impl<'a, Var: IntegerVariable + 'static> TaskBounds<'a, Var> {
     }
 }
 
+// Applies bounds relaxation to all tasks
 fn expand_domains<Var: IntegerVariable + 'static>(
     task_bounds: &mut Vec<TaskBounds<Var>>,
     interval: (i32, i32),
@@ -315,6 +329,7 @@ fn expand_domains<Var: IntegerVariable + 'static>(
     }
 }
 
+// Applies the task shift to all tasks
 fn shift_tasks<Var: IntegerVariable + 'static>(
     task_bounds: &mut Vec<TaskBounds<Var>>,
     overload: &mut i32,
@@ -326,6 +341,7 @@ fn shift_tasks<Var: IntegerVariable + 'static>(
     task_bounds.retain(|tb| tb.rs > 0 && tb.ls > 0);
 }
 
+// Applies greedy task removal to the set of task bounds
 fn remove_tasks_greedy<Var: IntegerVariable + 'static>(
     task_bounds: &mut Vec<TaskBounds<Var>>,
     overload: &mut i32,
@@ -342,6 +358,7 @@ fn remove_tasks_greedy<Var: IntegerVariable + 'static>(
     });
 }
 
+// Applies knapsack task removal to the set of task bounds
 fn remove_tasks_knapsack<Var: IntegerVariable + 'static>(
     task_bounds: &mut Vec<TaskBounds<Var>>,
     overload: &mut i32,
@@ -381,6 +398,7 @@ fn remove_tasks_knapsack<Var: IntegerVariable + 'static>(
     }
 }
 
+// Creates the base of a conflict explanation. Forms initial task bounds and applies the relevant strategies to the set of bounds
 fn create_conflict_explanation_base<Context: ReadDomains + Copy, Var: IntegerVariable + 'static>(
     context: Context, 
     interval: (i32, i32),
@@ -416,7 +434,7 @@ fn create_conflict_explanation_base<Context: ReadDomains + Copy, Var: IntegerVar
     {
         unsafe { NORMALIZED_ENERGY += (overload - 1) as f64 / min_usage as f64 };
     }
-
+    
     expand_domains(&mut task_bounds, interval);
     let mut maximum_overload = overload;
     let overload_before = overload;
@@ -437,6 +455,8 @@ fn create_conflict_explanation_base<Context: ReadDomains + Copy, Var: IntegerVar
     predicates
 }
 
+// Creates the base of a propagation explanation. Similar to conflict explanation, but skips a certain task.
+// Forms initial task bounds and applies the relevant strategies to the set of bounds
 fn create_propagation_explanation_base<Context: ReadDomains + Copy, Var: IntegerVariable + 'static>(
     context: Context, 
     interval: (i32, i32),
@@ -496,6 +516,7 @@ fn create_propagation_explanation_base<Context: ReadDomains + Copy, Var: Integer
     predicates
 }
 
+// Creates an explanation for a conflict
 fn create_conflict_explanation<Context: ReadDomains + Copy, Var: IntegerVariable + 'static>(
     context: Context, 
     interval: (i32, i32),
@@ -505,6 +526,7 @@ fn create_conflict_explanation<Context: ReadDomains + Copy, Var: IntegerVariable
     PropositionalConjunction::new(create_conflict_explanation_base(context, interval, overload, parameters))
 }
 
+// Creates an explanation for a lower bound propagation
 fn create_propagation_explanation_left<Context: ReadDomains + Copy, Var: IntegerVariable + 'static>(
     context: Context, 
     interval: (i32, i32),
@@ -517,6 +539,7 @@ fn create_propagation_explanation_left<Context: ReadDomains + Copy, Var: Integer
     PropositionalConjunction::new(predicates)
 }
 
+// Creates an explanation for an upper bound propagation
 fn create_propagation_explanation_right<Context: ReadDomains + Copy, Var: IntegerVariable + 'static>(
     context: Context, 
     interval: (i32, i32),
@@ -632,19 +655,23 @@ impl<Var: IntegerVariable + 'static> Propagator for EnergeticReasoning<Var> {
         "EnergeticReasoningKnapsack"
     }
     
+    // The propagation function as outlined in the pseudocode of Derrien and Petit
     fn propagate(&mut self, mut context: PropagationContextMut) -> PropagationStatusCP {
         let intervals: Vec<(i32, i32)> = generate_all_intervals(context.as_readonly(), &self.parameters);
 
+        // Go over the 'general' intervals Oc(A)
         for (start, end) in &intervals {
             let maximum_energy: i32 = self.parameters.capacity * (end - start);
             let mut used_energy: i32 = 0;
             for task in self.parameters.tasks.iter() {
                 used_energy += minimum_interval(context.as_readonly(), (*start, *end), task) * task.resource_usage;
             }
+            // Check for overload
             if used_energy > maximum_energy{
                 let overload = used_energy - maximum_energy;
                 return Err(create_conflict_explanation(context.as_readonly(), (*start, *end), overload, &self.parameters).into());
             }
+            // For each task check if bounds can be adjusted
             for task in self.parameters.tasks.iter() {
                 used_energy -= minimum_interval(context.as_readonly(), (*start, *end), task) * task.resource_usage;
                 let available_energy = maximum_energy - used_energy;
@@ -672,8 +699,10 @@ impl<Var: IntegerVariable + 'static> Propagator for EnergeticReasoning<Var> {
             }
         }
         
+        
         for task in self.parameters.tasks.iter() {
             let intervals_left = generate_left_intervals(context.as_readonly(), &task, &self.parameters);
+            // Go over the left intervals La
             for (start, end) in &intervals_left {
                 let maximum_energy: i32 = self.parameters.capacity * (end - start);
                 let mut used_energy: i32 = 0;
@@ -684,10 +713,12 @@ impl<Var: IntegerVariable + 'static> Propagator for EnergeticReasoning<Var> {
                 let available_energy = maximum_energy - used_energy;
                 let updated_lower_bound = end - available_energy / task.resource_usage;
                 let mi = minimum_interval(context.as_readonly(), (*start, *end), task);
+                // Check for overload
                 if available_energy < mi * task.resource_usage{
                     let overload = mi * task.resource_usage - available_energy;
                     return Err(create_conflict_explanation(context.as_readonly(), (*start, *end), overload, &self.parameters).into());
                 }
+                // For each task check if bounds can be adjusted
                 if available_energy < left_shift(context.as_readonly(), (*start, *end), task) * task.resource_usage
                 && context.lower_bound(&task.start_variable) < updated_lower_bound
                 {
@@ -698,6 +729,7 @@ impl<Var: IntegerVariable + 'static> Propagator for EnergeticReasoning<Var> {
                 }
             }
             let intervals_right = generate_right_intervals(context.as_readonly(), &task, &self.parameters);
+            // Go over the right intervals Ra
             for (start, end) in &intervals_right {
                 let maximum_energy: i32 = self.parameters.capacity * (end - start);
                 let mut used_energy: i32 = 0;
@@ -708,10 +740,12 @@ impl<Var: IntegerVariable + 'static> Propagator for EnergeticReasoning<Var> {
                 let available_energy = maximum_energy - used_energy;
                 let updated_upper_bound = start + (available_energy + task.resource_usage - 1) / task.resource_usage - task.processing_time;
                 let mi = minimum_interval(context.as_readonly(), (*start, *end), task);
+                // Check for overload
                 if available_energy < mi * task.resource_usage{
                     let overload = mi * task.resource_usage - available_energy;
                     return Err(create_conflict_explanation(context.as_readonly(), (*start, *end), overload, &self.parameters).into());
                 }
+                // For each task check if bounds can be adjusted
                 if available_energy < right_shift(context.as_readonly(), (*start, *end), task) * task.resource_usage
                 && context.upper_bound(&task.start_variable) > updated_upper_bound
                 {
