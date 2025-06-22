@@ -1,0 +1,234 @@
+﻿% Generated FlatZinc statistics:
+%%%mzn-stat: paths=0
+%%%mzn-stat: flatBoolVars=60322
+%%%mzn-stat: flatIntVars=20619
+%%%mzn-stat: flatBoolConstraints=19882
+%%%mzn-stat: flatIntConstraints=62514
+%%%mzn-stat: evaluatedReifiedConstraints=40440
+%%%mzn-stat: method="minimize"
+%%%mzn-stat: flatTime=3.37505
+%%%mzn-stat-end
+%%%mzn-stat: 1AutonomousSearchNumBackupCalled=0
+%%%mzn-stat: 1AutonomousSearchNumPredicatesRemoved=0
+%%%mzn-stat: 1AutonomousSearchNumCalls=1
+%%%mzn-stat: 1AutonomousSearchNumPredicatesAdded=0
+%%%mzn-stat: 1AutonomousSearchAverageSizeOfHeap=0
+%%%mzn-stat: 1AutonomousSearchNumAssignedPredicatesEncountered=0
+%%%mzn-stat: objective=87
+%%%mzn-stat: engineStatisticsNumDecisions=61
+%%%mzn-stat: engineStatisticsNumConflicts=0
+%%%mzn-stat: engineStatisticsNumRestarts=0
+%%%mzn-stat: engineStatisticsNumPropagations=78538
+%%%mzn-stat: engineStatisticsTimeSpentInSolver=99
+%%%mzn-stat: learnedClauseStatisticsAverageConflictSize=0
+%%%mzn-stat: learnedClauseStatisticsAverageNumberOfRemovedLiteralsRecursive=0
+%%%mzn-stat: learnedClauseStatisticsAverageNumberOfRemovedLiteralsSemantic=0
+%%%mzn-stat: learnedClauseStatisticsNumUnitClausesLearned=0
+%%%mzn-stat: learnedClauseStatisticsAverageLearnedClauseLength=0
+%%%mzn-stat: learnedClauseStatisticsAverageBacktrackAmount=0
+%%%mzn-stat: learnedClauseStatisticsAverageLbd=0
+%%%mzn-stat-end
+Start times = [0, 0, 0, 7, 9, 10, 12, 12, 7, 19, 19, 9, 20, 19, 19, 23, 25, 19, 28, 12, 27, 37, 29, 31, 15, 31, 38, 46, 21, 38, 39, 40, 25, 50, 50, 27, 33, 50, 36, 51, 46, 37, 44, 44, 55, 50, 59, 60, 58, 68, 68, 57, 64, 78, 67, 78, 59, 68, 81, 79]
+makespan = 87
+----------
+%%%mzn-stat: 1AutonomousSearchNumBackupCalled=0
+%%%mzn-stat: 1AutonomousSearchNumPredicatesRemoved=0
+%%%mzn-stat: 1AutonomousSearchNumCalls=2
+%%%mzn-stat: 1AutonomousSearchNumPredicatesAdded=0
+%%%mzn-stat: 1AutonomousSearchAverageSizeOfHeap=0
+%%%mzn-stat: 1AutonomousSearchNumAssignedPredicatesEncountered=0
+%%%mzn-stat: objective=86
+%%%mzn-stat: engineStatisticsNumDecisions=115
+%%%mzn-stat: engineStatisticsNumConflicts=0
+%%%mzn-stat: engineStatisticsNumRestarts=0
+%%%mzn-stat: engineStatisticsNumPropagations=145339
+%%%mzn-stat: engineStatisticsTimeSpentInSolver=142
+%%%mzn-stat: learnedClauseStatisticsAverageConflictSize=0
+%%%mzn-stat: learnedClauseStatisticsAverageNumberOfRemovedLiteralsRecursive=0
+%%%mzn-stat: learnedClauseStatisticsAverageNumberOfRemovedLiteralsSemantic=0
+%%%mzn-stat: learnedClauseStatisticsNumUnitClausesLearned=0
+%%%mzn-stat: learnedClauseStatisticsAverageLearnedClauseLength=0
+%%%mzn-stat: learnedClauseStatisticsAverageBacktrackAmount=0
+%%%mzn-stat: learnedClauseStatisticsAverageLbd=0
+%%%mzn-stat-end
+Start times = [0, 0, 0, 7, 9, 10, 12, 12, 7, 19, 19, 9, 20, 19, 19, 23, 25, 19, 28, 12, 27, 37, 29, 31, 15, 31, 38, 46, 21, 38, 39, 40, 25, 50, 50, 27, 33, 52, 36, 50, 46, 37, 44, 44, 55, 50, 59, 59, 58, 67, 67, 57, 64, 77, 59, 77, 65, 67, 80, 78]
+makespan = 86
+----------
+%%%mzn-stat: 1AutonomousSearchNumBackupCalled=0
+%%%mzn-stat: 1AutonomousSearchNumPredicatesRemoved=0
+%%%mzn-stat: 1AutonomousSearchNumCalls=3
+%%%mzn-stat: 1AutonomousSearchNumPredicatesAdded=0
+%%%mzn-stat: 1AutonomousSearchAverageSizeOfHeap=0
+%%%mzn-stat: 1AutonomousSearchNumAssignedPredicatesEncountered=0
+%%%mzn-stat: objective=85
+%%%mzn-stat: engineStatisticsNumDecisions=167
+%%%mzn-stat: engineStatisticsNumConflicts=0
+%%%mzn-stat: engineStatisticsNumRestarts=0
+%%%mzn-stat: engineStatisticsNumPropagations=151529
+%%%mzn-stat: engineStatisticsTimeSpentInSolver=191
+%%%mzn-stat: learnedClauseStatisticsAverageConflictSize=0
+%%%mzn-stat: learnedClauseStatisticsAverageNumberOfRemovedLiteralsRecursive=0
+%%%mzn-stat: learnedClauseStatisticsAverageNumberOfRemovedLiteralsSemantic=0
+%%%mzn-stat: learnedClauseStatisticsNumUnitClausesLearned=0
+%%%mzn-stat: learnedClauseStatisticsAverageLearnedClauseLength=0
+%%%mzn-stat: learnedClauseStatisticsAverageBacktrackAmount=0
+%%%mzn-stat: learnedClauseStatisticsAverageLbd=0
+%%%mzn-stat-end
+Start times = [0, 0, 0, 7, 9, 10, 12, 12, 7, 19, 19, 9, 20, 19, 19, 23, 25, 19, 28, 12, 27, 37, 29, 31, 15, 31, 38, 46, 21, 38, 40, 39, 25, 49, 49, 27, 33, 51, 36, 49, 46, 37, 44, 44, 55, 50, 58, 58, 58, 66, 66, 57, 64, 76, 58, 76, 64, 67, 79, 77]
+makespan = 85
+----------
+%%%mzn-stat: 1AutonomousSearchNumBackupCalled=0
+%%%mzn-stat: 1AutonomousSearchNumPredicatesRemoved=0
+%%%mzn-stat: 1AutonomousSearchNumCalls=4
+%%%mzn-stat: 1AutonomousSearchNumPredicatesAdded=0
+%%%mzn-stat: 1AutonomousSearchAverageSizeOfHeap=0
+%%%mzn-stat: 1AutonomousSearchNumAssignedPredicatesEncountered=0
+%%%mzn-stat: objective=83
+%%%mzn-stat: engineStatisticsNumDecisions=228
+%%%mzn-stat: engineStatisticsNumConflicts=0
+%%%mzn-stat: engineStatisticsNumRestarts=0
+%%%mzn-stat: engineStatisticsNumPropagations=157457
+%%%mzn-stat: engineStatisticsTimeSpentInSolver=242
+%%%mzn-stat: learnedClauseStatisticsAverageConflictSize=0
+%%%mzn-stat: learnedClauseStatisticsAverageNumberOfRemovedLiteralsRecursive=0
+%%%mzn-stat: learnedClauseStatisticsAverageNumberOfRemovedLiteralsSemantic=0
+%%%mzn-stat: learnedClauseStatisticsNumUnitClausesLearned=0
+%%%mzn-stat: learnedClauseStatisticsAverageLearnedClauseLength=0
+%%%mzn-stat: learnedClauseStatisticsAverageBacktrackAmount=0
+%%%mzn-stat: learnedClauseStatisticsAverageLbd=0
+%%%mzn-stat-end
+Start times = [0, 0, 0, 7, 9, 10, 12, 12, 7, 19, 19, 9, 20, 19, 19, 23, 25, 19, 28, 12, 27, 37, 36, 29, 15, 31, 36, 44, 21, 36, 36, 37, 25, 47, 49, 27, 33, 47, 43, 47, 51, 44, 52, 38, 58, 45, 58, 56, 61, 64, 64, 60, 67, 74, 67, 74, 54, 70, 77, 75]
+makespan = 83
+----------
+%%%mzn-stat: 1AutonomousSearchNumBackupCalled=0
+%%%mzn-stat: 1AutonomousSearchNumPredicatesRemoved=0
+%%%mzn-stat: 1AutonomousSearchNumCalls=5
+%%%mzn-stat: 1AutonomousSearchNumPredicatesAdded=138
+%%%mzn-stat: 1AutonomousSearchAverageSizeOfHeap=27.6
+%%%mzn-stat: 1AutonomousSearchNumAssignedPredicatesEncountered=138
+%%%mzn-stat: objective=82
+%%%mzn-stat: engineStatisticsNumDecisions=286
+%%%mzn-stat: engineStatisticsNumConflicts=7
+%%%mzn-stat: engineStatisticsNumRestarts=0
+%%%mzn-stat: engineStatisticsNumPropagations=164435
+%%%mzn-stat: engineStatisticsTimeSpentInSolver=287
+%%%mzn-stat: learnedClauseStatisticsAverageConflictSize=2.2857142857142856
+%%%mzn-stat: learnedClauseStatisticsAverageNumberOfRemovedLiteralsRecursive=0.2857142857142857
+%%%mzn-stat: learnedClauseStatisticsAverageNumberOfRemovedLiteralsSemantic=0
+%%%mzn-stat: learnedClauseStatisticsNumUnitClausesLearned=0
+%%%mzn-stat: learnedClauseStatisticsAverageLearnedClauseLength=13
+%%%mzn-stat: learnedClauseStatisticsAverageBacktrackAmount=1.7142857142857142
+%%%mzn-stat: learnedClauseStatisticsAverageLbd=7.142857142857143
+%%%mzn-stat-end
+Start times = [0, 0, 0, 7, 9, 10, 12, 12, 7, 19, 19, 9, 20, 19, 19, 23, 25, 19, 29, 12, 27, 37, 37, 28, 15, 31, 39, 49, 21, 35, 35, 36, 25, 46, 42, 27, 39, 55, 45, 46, 51, 48, 55, 33, 60, 49, 63, 55, 56, 63, 68, 60, 67, 73, 65, 73, 65, 71, 76, 74]
+makespan = 82
+----------
+%%%mzn-stat: 1AutonomousSearchNumBackupCalled=0
+%%%mzn-stat: 1AutonomousSearchNumPredicatesRemoved=0
+%%%mzn-stat: 1AutonomousSearchNumCalls=6
+%%%mzn-stat: 1AutonomousSearchNumPredicatesAdded=257
+%%%mzn-stat: 1AutonomousSearchAverageSizeOfHeap=65.83333333333333
+%%%mzn-stat: 1AutonomousSearchNumAssignedPredicatesEncountered=395
+%%%mzn-stat: objective=81
+%%%mzn-stat: engineStatisticsNumDecisions=347
+%%%mzn-stat: engineStatisticsNumConflicts=17
+%%%mzn-stat: engineStatisticsNumRestarts=0
+%%%mzn-stat: engineStatisticsNumPropagations=171342
+%%%mzn-stat: engineStatisticsTimeSpentInSolver=357
+%%%mzn-stat: learnedClauseStatisticsAverageConflictSize=2.7058823529411766
+%%%mzn-stat: learnedClauseStatisticsAverageNumberOfRemovedLiteralsRecursive=0.17647058823529413
+%%%mzn-stat: learnedClauseStatisticsAverageNumberOfRemovedLiteralsSemantic=0
+%%%mzn-stat: learnedClauseStatisticsNumUnitClausesLearned=0
+%%%mzn-stat: learnedClauseStatisticsAverageLearnedClauseLength=13.176470588235293
+%%%mzn-stat: learnedClauseStatisticsAverageBacktrackAmount=1.5294117647058822
+%%%mzn-stat: learnedClauseStatisticsAverageLbd=7.411764705882353
+%%%mzn-stat-end
+Start times = [0, 0, 0, 7, 9, 10, 12, 12, 7, 19, 19, 9, 23, 19, 19, 21, 26, 19, 28, 12, 32, 42, 34, 27, 15, 33, 36, 44, 20, 34, 36, 35, 42, 47, 48, 54, 27, 56, 44, 45, 49, 47, 57, 42, 57, 35, 59, 54, 63, 62, 64, 58, 65, 72, 57, 72, 65, 73, 75, 74]
+makespan = 81
+----------
+%%%mzn-stat: 1AutonomousSearchNumBackupCalled=0
+%%%mzn-stat: 1AutonomousSearchNumPredicatesRemoved=0
+%%%mzn-stat: 1AutonomousSearchNumCalls=7
+%%%mzn-stat: 1AutonomousSearchNumPredicatesAdded=319
+%%%mzn-stat: 1AutonomousSearchAverageSizeOfHeap=100.57142857142857
+%%%mzn-stat: 1AutonomousSearchNumAssignedPredicatesEncountered=704
+%%%mzn-stat: objective=80
+%%%mzn-stat: engineStatisticsNumDecisions=397
+%%%mzn-stat: engineStatisticsNumConflicts=19
+%%%mzn-stat: engineStatisticsNumRestarts=0
+%%%mzn-stat: engineStatisticsNumPropagations=176552
+%%%mzn-stat: engineStatisticsTimeSpentInSolver=400
+%%%mzn-stat: learnedClauseStatisticsAverageConflictSize=2.6315789473684212
+%%%mzn-stat: learnedClauseStatisticsAverageNumberOfRemovedLiteralsRecursive=0.15789473684210525
+%%%mzn-stat: learnedClauseStatisticsAverageNumberOfRemovedLiteralsSemantic=0
+%%%mzn-stat: learnedClauseStatisticsNumUnitClausesLearned=0
+%%%mzn-stat: learnedClauseStatisticsAverageLearnedClauseLength=13.421052631578947
+%%%mzn-stat: learnedClauseStatisticsAverageBacktrackAmount=1.4736842105263157
+%%%mzn-stat: learnedClauseStatisticsAverageLbd=7.421052631578948
+%%%mzn-stat-end
+Start times = [0, 0, 0, 7, 9, 10, 12, 12, 7, 19, 19, 9, 23, 19, 19, 21, 27, 19, 28, 12, 32, 42, 33, 26, 15, 35, 36, 52, 20, 33, 36, 34, 32, 44, 43, 37, 26, 44, 39, 44, 45, 46, 53, 52, 58, 53, 60, 53, 61, 61, 65, 55, 62, 71, 55, 71, 62, 70, 74, 72]
+makespan = 80
+----------
+%%%mzn-stat: 1AutonomousSearchNumBackupCalled=0
+%%%mzn-stat: 1AutonomousSearchNumPredicatesRemoved=0
+%%%mzn-stat: 1AutonomousSearchNumCalls=8
+%%%mzn-stat: 1AutonomousSearchNumPredicatesAdded=466
+%%%mzn-stat: 1AutonomousSearchAverageSizeOfHeap=142.625
+%%%mzn-stat: 1AutonomousSearchNumAssignedPredicatesEncountered=1141
+%%%mzn-stat: objective=79
+%%%mzn-stat: engineStatisticsNumDecisions=455
+%%%mzn-stat: engineStatisticsNumConflicts=24
+%%%mzn-stat: engineStatisticsNumRestarts=0
+%%%mzn-stat: engineStatisticsNumPropagations=183252
+%%%mzn-stat: engineStatisticsTimeSpentInSolver=452
+%%%mzn-stat: learnedClauseStatisticsAverageConflictSize=2.5
+%%%mzn-stat: learnedClauseStatisticsAverageNumberOfRemovedLiteralsRecursive=0.125
+%%%mzn-stat: learnedClauseStatisticsAverageNumberOfRemovedLiteralsSemantic=0
+%%%mzn-stat: learnedClauseStatisticsNumUnitClausesLearned=0
+%%%mzn-stat: learnedClauseStatisticsAverageLearnedClauseLength=13.125
+%%%mzn-stat: learnedClauseStatisticsAverageBacktrackAmount=1.6666666666666667
+%%%mzn-stat: learnedClauseStatisticsAverageLbd=7.041666666666667
+%%%mzn-stat-end
+Start times = [0, 0, 0, 7, 9, 10, 12, 12, 7, 19, 19, 9, 27, 19, 19, 20, 21, 23, 27, 12, 32, 42, 37, 25, 15, 39, 32, 41, 27, 32, 35, 33, 35, 48, 51, 54, 27, 43, 42, 43, 46, 44, 59, 48, 56, 41, 60, 52, 65, 60, 65, 55, 62, 70, 59, 71, 61, 74, 73, 72]
+makespan = 79
+----------
+%%%mzn-stat: 1AutonomousSearchNumBackupCalled=0
+%%%mzn-stat: 1AutonomousSearchNumPredicatesRemoved=0
+%%%mzn-stat: 1AutonomousSearchNumCalls=9
+%%%mzn-stat: 1AutonomousSearchNumPredicatesAdded=1071
+%%%mzn-stat: 1AutonomousSearchAverageSizeOfHeap=238.33333333333334
+%%%mzn-stat: 1AutonomousSearchNumAssignedPredicatesEncountered=2145
+%%%mzn-stat: objective=78
+%%%mzn-stat: engineStatisticsNumDecisions=571
+%%%mzn-stat: engineStatisticsNumConflicts=66
+%%%mzn-stat: engineStatisticsNumRestarts=0
+%%%mzn-stat: engineStatisticsNumPropagations=203239
+%%%mzn-stat: engineStatisticsTimeSpentInSolver=648
+%%%mzn-stat: learnedClauseStatisticsAverageConflictSize=2.621212121212121
+%%%mzn-stat: learnedClauseStatisticsAverageNumberOfRemovedLiteralsRecursive=0.48484848484848486
+%%%mzn-stat: learnedClauseStatisticsAverageNumberOfRemovedLiteralsSemantic=0
+%%%mzn-stat: learnedClauseStatisticsNumUnitClausesLearned=0
+%%%mzn-stat: learnedClauseStatisticsAverageLearnedClauseLength=18.484848484848484
+%%%mzn-stat: learnedClauseStatisticsAverageBacktrackAmount=1.7878787878787878
+%%%mzn-stat: learnedClauseStatisticsAverageLbd=7
+%%%mzn-stat-end
+Start times = [0, 0, 0, 7, 9, 10, 12, 12, 7, 19, 19, 9, 20, 19, 27, 19, 25, 19, 30, 12, 31, 41, 38, 24, 15, 40, 31, 49, 23, 31, 33, 32, 39, 42, 47, 52, 24, 44, 42, 42, 46, 42, 59, 41, 56, 54, 61, 51, 61, 59, 66, 55, 62, 69, 55, 70, 62, 71, 72, 71]
+makespan = 78
+----------
+==========
+%%%mzn-stat: engineStatisticsNumDecisions=571
+%%%mzn-stat: engineStatisticsNumConflicts=66
+%%%mzn-stat: engineStatisticsNumRestarts=0
+%%%mzn-stat: engineStatisticsNumPropagations=203239
+%%%mzn-stat: engineStatisticsTimeSpentInSolver=648
+%%%mzn-stat: learnedClauseStatisticsAverageConflictSize=2.621212121212121
+%%%mzn-stat: learnedClauseStatisticsAverageNumberOfRemovedLiteralsRecursive=0.48484848484848486
+%%%mzn-stat: learnedClauseStatisticsAverageNumberOfRemovedLiteralsSemantic=0
+%%%mzn-stat: learnedClauseStatisticsNumUnitClausesLearned=0
+%%%mzn-stat: learnedClauseStatisticsAverageLearnedClauseLength=18.484848484848484
+%%%mzn-stat: learnedClauseStatisticsAverageBacktrackAmount=1.7878787878787878
+%%%mzn-stat: learnedClauseStatisticsAverageLbd=7
+%%%mzn-stat-end
+%%%mzn-stat: nSolutions=9
+%%%mzn-stat-end
+
