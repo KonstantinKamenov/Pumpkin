@@ -1,3 +1,9 @@
+# Research Project CSE3000
+
+This project was done as a part of the TU Delft research project course, 2025.
+
+You can find all projects [here](https://cse3000-research-project.github.io/).
+
 # Pumpkin
 
 [![Build Status](https://github.com/ConSol-Lab/pumpkin/actions/workflows/ci.yml/badge.svg)](https://github.com/ConSol-Lab/pumpkin/actions/workflows/ci.yml)
